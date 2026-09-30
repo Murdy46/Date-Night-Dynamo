@@ -96,8 +96,23 @@ with tab1:
             st.warning("Nothing fits! Try picking more vibes, costs, or a longer duration.")
             st.session_state["selection"] = None
         else:
-            count = 2 if (max_idx > 0 and len(filtered) > 1) else 1
-            st.session_state["selection"] = filtered.sample(n=count).to_dict('records')
+            # Time budget hours and maximum items allowed
+            dur_hours = {"<4hr": 4, "<24hrs": 14, "<48hrs": 36, "<7days": 100}
+            max_budget = dur_hours.get(max_duration, 4)
+            max_items = {"<4hr": 1, "<24hrs": 3, "<48hrs": 4, "<7days": 5}.get(max_duration, 2)
+
+            shuffled = filtered.sample(frac=1).to_dict('records')
+            selections = []
+            total_hours = 0
+
+            # Accumulate smaller activities into the longer time window
+            for item in shuffled:
+                item_hours = dur_hours.get(item["Duration"], 4)
+                if total_hours + item_hours <= max_budget and len(selections) < max_items:
+                    selections.append(item)
+                    total_hours += item_hours
+
+            st.session_state["selection"] = selections if selections else [shuffled[0]]
 
     # Display Results
     if "selection" in st.session_state and st.session_state["selection"]:

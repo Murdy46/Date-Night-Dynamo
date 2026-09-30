@@ -84,9 +84,9 @@ with tab1:
         max_idx = dur_options.index(max_duration)
         allowed_durations = dur_options[:max_idx + 1]
 
-        # Filter (Now supports comma-separated seasons e.g. "Spring, Summer")
+        # Filter (Case-insensitive & handles multiple comma-separated seasons)
         filtered = df[
-            (df["Season"].apply(lambda s: "Any" in str(s) or target_season in [x.strip() for x in str(s).split(",")])) &
+            (df["Season"].apply(lambda s: "any" in str(s).lower() or target_season.lower() in [x.strip().lower() for x in str(s).split(",")])) &
             (df["Duration"].isin(allowed_durations)) &
             (df["Category"].isin(selected_vibes)) &
             (df["Cost"].isin(selected_costs))
@@ -148,7 +148,9 @@ with tab2:
         cat_choice = st.selectbox("Select Existing Category*", options=existing_cats + ["➕ Create New Category..."])
         new_custom_cat = st.text_input("Or type new category name (if 'Create New' selected above):")
         
-        new_season = st.selectbox("Season", ["Any", "Spring", "Summer", "Autumn", "Winter"])
+        # Multiple Seasons Selection
+        new_seasons = st.multiselect("Season(s)*", options=["Any", "Spring", "Summer", "Autumn", "Winter"], default=["Any"])
+        
         new_dur = st.selectbox("Duration", ["<4hr", "<24hrs", "<48hrs", "<7days"])
         new_cost = st.selectbox("Cost", ["Free", "Low", "Medium", "High"])
         new_notes = st.text_area("Notes / Comments")
@@ -156,6 +158,7 @@ with tab2:
         submitted = st.form_submit_button("Add Activity")
         if submitted:
             final_cat = new_custom_cat.strip() if cat_choice == "➕ Create New Category..." else cat_choice
+            final_seasons = ", ".join(new_seasons) if new_seasons else "Any"
             
             if not new_act or not final_cat:
                 st.error("Please provide both an Activity name and Category!")
@@ -164,7 +167,7 @@ with tab2:
                 new_row = pd.DataFrame([{
                     "Activity": new_act,
                     "Category": final_cat,
-                    "Season": new_season,
+                    "Season": final_seasons,
                     "Duration": new_dur,
                     "Cost": new_cost,
                     "Comments": new_notes

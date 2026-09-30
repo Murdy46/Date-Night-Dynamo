@@ -2,12 +2,10 @@ import streamlit as st
 import pandas as pd
 import datetime
 import random
-import os
+from streamlit_gsheets import GSheetsConnection
 
 # --- PAGE CONFIG ---
 st.set_page_config(page_title="Date Night Dynamo", page_icon="✨", layout="centered")
-
-FILE_NAME = os.path.join(os.path.dirname(os.path.abspath(__file__)), "activities.csv")
 
 # Custom Dark & Cyan Styling
 st.markdown("""
@@ -33,16 +31,21 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- CSV FUNCTIONS ---
+# --- GOOGLE SHEETS CONNECTION ---
+conn = st.connection("gsheets", type=GSheetsConnection)
+
 def load_data():
-    if not os.path.exists(FILE_NAME):
-        df = pd.DataFrame(columns=["Activity", "Category", "Season", "Duration", "Cost", "Comments"])
-        df.to_csv(FILE_NAME, index=False)
-        return df
-    return pd.read_csv(FILE_NAME).fillna("")
+    try:
+        # ttl=0 ensures real-time updates when either of you edits
+        df = conn.read(ttl=0)
+        if df is None or df.empty:
+            return pd.DataFrame(columns=["Activity", "Category", "Season", "Duration", "Cost", "Comments"])
+        return df.fillna("")
+    except Exception:
+        return pd.DataFrame(columns=["Activity", "Category", "Season", "Duration", "Cost", "Comments"])
 
 def save_data(df):
-    df.to_csv(FILE_NAME, index=False)
+    conn.update(data=df)
 
 def get_season(dt):
     m = dt.month
@@ -113,7 +116,7 @@ with tab1:
             chosen_names = [x["Activity"] for x in st.session_state["selection"]]
             df = df[~df["Activity"].isin(chosen_names)]
             save_data(df)
-            st.success("Locked in! Activities removed from list. Have fun! 🎉")
+            st.success("Locked in! Activities removed from Google Sheet. Have fun! 🎉")
             st.session_state["selection"] = None
             st.rerun()
 
@@ -144,7 +147,7 @@ with tab2:
                 }])
                 df = pd.concat([df, new_row], ignore_index=True)
                 save_data(df)
-                st.success(f"Added '{new_act}' to the list!")
+                st.success(f"Added '{new_act}' permanently to Google Sheets!")
 
 # ================= TAB 3: MANAGE / DELETE =================
 with tab3:
@@ -157,5 +160,5 @@ with tab3:
         if to_delete != "-- Choose one to delete --":
             df = df[df["Activity"] != to_delete]
             save_data(df)
-            st.success(f"Removed '{to_delete}'!")
+            st.success(f"Removed '{to_delete}' from Google Sheets!")
             st.rerun()

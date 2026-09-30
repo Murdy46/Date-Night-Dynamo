@@ -84,9 +84,9 @@ with tab1:
         max_idx = dur_options.index(max_duration)
         allowed_durations = dur_options[:max_idx + 1]
 
-        # Filter
+        # Filter (Now supports comma-separated seasons e.g. "Spring, Summer")
         filtered = df[
-            (df["Season"].isin(["Any", target_season])) &
+            (df["Season"].apply(lambda s: "Any" in str(s) or target_season in [x.strip() for x in str(s).split(",")])) &
             (df["Duration"].isin(allowed_durations)) &
             (df["Category"].isin(selected_vibes)) &
             (df["Cost"].isin(selected_costs))

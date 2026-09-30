@@ -123,9 +123,16 @@ with tab1:
 # ================= TAB 2: ADD ACTIVITY =================
 with tab2:
     st.subheader("Add a New Date Idea")
+    df = load_data()
+    existing_cats = sorted([str(c) for c in df["Category"].dropna().unique() if str(c).strip()]) if not df.empty else []
+
     with st.form("new_activity_form", clear_on_submit=True):
         new_act = st.text_input("Activity Name*")
-        new_cat = st.text_input("Category / Vibe (e.g. Places to Eat, Chilling)*")
+        
+        # Category Dropdown + New Category Option
+        cat_choice = st.selectbox("Select Existing Category*", options=existing_cats + ["➕ Create New Category..."])
+        new_custom_cat = st.text_input("Or type new category name (if 'Create New' selected above):")
+        
         new_season = st.selectbox("Season", ["Any", "Spring", "Summer", "Autumn", "Winter"])
         new_dur = st.selectbox("Duration", ["<4hr", "<24hrs", "<48hrs", "<7days"])
         new_cost = st.selectbox("Cost", ["Free", "Low", "Medium", "High"])
@@ -133,13 +140,15 @@ with tab2:
         
         submitted = st.form_submit_button("Add Activity")
         if submitted:
-            if not new_act or not new_cat:
+            final_cat = new_custom_cat.strip() if cat_choice == "➕ Create New Category..." else cat_choice
+            
+            if not new_act or not final_cat:
                 st.error("Please provide both an Activity name and Category!")
             else:
                 df = load_data()
                 new_row = pd.DataFrame([{
                     "Activity": new_act,
-                    "Category": new_cat,
+                    "Category": final_cat,
                     "Season": new_season,
                     "Duration": new_dur,
                     "Cost": new_cost,
@@ -147,7 +156,7 @@ with tab2:
                 }])
                 df = pd.concat([df, new_row], ignore_index=True)
                 save_data(df)
-                st.success(f"Added '{new_act}' permanently to Google Sheets!")
+                st.success(f"Added '{new_act}' under '{final_cat}' permanently to Google Sheets!")
 
 # ================= TAB 3: MANAGE / DELETE =================
 with tab3:

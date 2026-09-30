@@ -68,6 +68,10 @@ with tab1:
         dur_options = ["<4hr", "<24hrs", "<48hrs", "<7days"]
         max_duration = st.selectbox("Max Time Available", dur_options)
 
+    # Cost Selection
+    cost_options = ["Free", "Low", "Medium", "High"]
+    selected_costs = st.multiselect("Select Cost", options=cost_options, default=cost_options)
+
     # Categories (Vibes)
     all_categories = sorted(list(set(df["Category"].dropna().tolist()))) if not df.empty else []
     selected_vibes = st.multiselect("Select Vibes", options=all_categories, default=all_categories)
@@ -81,11 +85,12 @@ with tab1:
         filtered = df[
             (df["Season"].isin(["Any", target_season])) &
             (df["Duration"].isin(allowed_durations)) &
-            (df["Category"].isin(selected_vibes))
+            (df["Category"].isin(selected_vibes)) &
+            (df["Cost"].isin(selected_costs))
         ]
 
         if filtered.empty:
-            st.warning("Nothing fits! Try picking more vibes or a longer duration.")
+            st.warning("Nothing fits! Try picking more vibes, costs, or a longer duration.")
             st.session_state["selection"] = None
         else:
             count = 2 if (max_idx > 0 and len(filtered) > 1) else 1
